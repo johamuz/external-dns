@@ -1,3 +1,55 @@
+package dynadot
+
+import (
+	"context"
+	"testing"
+
+	"sigs.k8s.io/external-dns/pkg/endpoint"
+	"sigs.k8s.io/external-dns/pkg/provider"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// MockDynadotClient is a mock implementation of the Dynadot API client.
+type MockDynadotClient struct {
+	domains map[string][]DynadotRecord
+}
+
+func NewMockDynadotClient() *MockDynadotClient {
+	return &MockDynadotClient{
+		domains: make(map[string][]DynadotRecord),
+	}
+}
+
+func (m *MockDynadotClient) ListDomains() ([]DynadotDomain, error) {
+	var domains []DynadotDomain
+	for domain := range m.domains {
+		domains = append(domains, DynadotDomain{Name: domain})
+	}
+	return domains, nil
+}
+
+func (m *MockDynadotClient) ListRecords(domainName string) ([]DynadotRecord, error) {
+	return m.domains[domainName], nil
+}
+
+func (m *MockDynadotClient) CreateRecord(domainName string, record DynadotRecord) (DynadotRecord, error) {
+	m.domains[domainName] = append(m.domains[domainName], record)
+	return record, nil
+}
+
+func (m *MockDynadotClient) DeleteRecord(domainName, recordID string) error {
+	records := m.domains[domainName]
+	for i, record := range records {
+		if record.ID == recordID {
+			m.domains[domainName] = append(records[:i], records[i+1:]...)
+			return nil
+		}
+	}
+	return nil
+}
+
+// TestDynadotProvider tests the Dynadot provider implementation.
 func TestDynadotProvider(t *testing.T) {
 	mockClient := NewMockDynadotClient()
 	provider := &DynadotProvider{
@@ -93,4 +145,3 @@ func TestDynadotProvider(t *testing.T) {
 		assert.Equal(t, "9.10.11.12", records[0].Targets[0])
 	})
 }
-ls
