@@ -93,3 +93,4 @@ func TestDynadotProvider(t *testing.T) {
 		assert.Equal(t, "9.10.11.12", records[0].Targets[0])
 	})
 }
+ls
